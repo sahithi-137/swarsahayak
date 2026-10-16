@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* SwarSahayak Forest Green, Sage & Cream Palette */
+  --color-primary-900: #081c15;
+  --color-primary-800: #1b4332;
+  --color-primary-700: #2d6a4f;
+  --color-primary-600: #40916c;
+  --color-primary-500: #52b788;
+  --color-primary-400: #74c69d;
+  --color-primary-200: #b7e4c7;
+  --color-primary-100: #d8f3dc;
+
+  /* Cream, White & Backgrounds */
+  --color-bg-base: #f7f5f0;
+  --color-bg-cream: #f4f0e6;
+  --color-surface-card: #ffffff;
+  --color-surface-card-subtle: #f9f8f5;
+
+  /* Typography Colors */
+  --color-text-main: #14281d;
+  --color-text-muted: #4b6354;
+  --color-text-light: #71887b;
+
+  /* Accents & States */
+  --color-accent-amber: #d97706;
+  --color-accent-amber-bg: #fef3c7;
+  --color-accent-red: #dc2626;
+  --color-accent-red-bg: #fee2e2;
+  --color-accent-blue: #0284c7;
+  --color-accent-blue-bg: #e0f2fe;
+
+  /* Elevation & Shadows */
+  --shadow-sm: 0 1px 3px rgba(27, 67, 50, 0.08);
+  --shadow-md: 0 4px 12px rgba(27, 67, 50, 0.09);
+  --shadow-lg: 0 10px 25px rgba(27, 67, 50, 0.12);
+  --shadow-glow: 0 0 25px rgba(82, 183, 136, 0.4);
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-pill: 9999px;
+
+  /* Fonts */
+  --font-display: 'Outfit', 'Nirmala UI', 'Segoe UI', system-ui, sans-serif;
+  --font-body: 'Inter', 'Nirmala UI', 'Segoe UI', system-ui, sans-serif;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  min-height: 100%;
+  background-color: var(--color-bg-base);
+  color: var(--color-text-main);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background-image: 
+    radial-gradient(circle at 10% 10%, rgba(216, 243, 220, 0.55) 0%, transparent 40%),
+    radial-gradient(circle at 90% 85%, rgba(183, 228, 199, 0.45) 0%, transparent 45%);
+  background-attachment: fixed;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  transition: all 0.2s ease-in-out;
+}
+
+a {
+  color: var(--color-primary-700);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+input, textarea {
+  font-family: inherit;
+}
+
+/* Accessibility Skip Link */
+.skip-to-content-link {
+  position: absolute;
+  top: -60px;
+  left: 20px;
+  background: var(--color-primary-800);
+  color: #fff;
+  padding: 10px 18px;
+  z-index: 9999;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  transition: top 0.2s ease;
+}
+
+.skip-to-content-link:focus {
+  top: 15px;
+}
