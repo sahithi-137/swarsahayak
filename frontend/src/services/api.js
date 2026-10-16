@@ -1,10 +1,14 @@
 /**
  * SwarSahayak API Service Client
- * Configured with relative API URL and LocalTunnel bypass header
+ * Supports dynamic production backend URLs (VITE_API_URL), relative routes,
+ * and reliable local verified fallback for seamless offline/static deployment.
  */
+import { matchLocalQuery } from './localAssistant';
+import { LANGUAGES } from '../config/languages';
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-const TUNNEL_HEADERS = {
+const HEADERS = {
   'bypass-tunnel-reminder': '1'
 };
 
@@ -12,9 +16,11 @@ export async function checkBackendHealth() {
   try {
     const res = await fetch(`${API_BASE_URL}/health`, {
       method: 'GET',
-      headers: TUNNEL_HEADERS
+      headers: HEADERS,
+      signal: AbortSignal.timeout(2500)
     });
-    if (res.ok) {
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
       return await res.json();
     }
     return { status: 'offline' };
@@ -26,51 +32,61 @@ export async function checkBackendHealth() {
 export async function fetchLanguages() {
   try {
     const res = await fetch(`${API_BASE_URL}/languages`, {
-      headers: TUNNEL_HEADERS
+      headers: HEADERS,
+      signal: AbortSignal.timeout(2500)
     });
-    if (res.ok) {
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
       return await res.json();
     }
-    throw new Error('Failed to fetch languages');
   } catch (err) {
-    console.warn('Backend languages offline, using local config fallback', err);
-    return null;
+    console.info('Backend languages offline, using client catalogue fallback.');
   }
+  return LANGUAGES;
 }
 
 export async function fetchCategories() {
   try {
     const res = await fetch(`${API_BASE_URL}/categories`, {
-      headers: TUNNEL_HEADERS
+      headers: HEADERS,
+      signal: AbortSignal.timeout(2500)
     });
-    if (res.ok) {
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
       return await res.json();
     }
   } catch (err) {
-    console.warn('Could not fetch categories from server', err);
+    // Silent fallback
   }
   return null;
 }
 
 export async function askAssistant(query, language = 'hi', category = null) {
+  // 1. Attempt to query remote backend if accessible
   try {
     const res = await fetch(`${API_BASE_URL}/ask`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...TUNNEL_HEADERS
+        ...HEADERS
       },
-      body: JSON.stringify({ query, language, category })
+      body: JSON.stringify({ query, language, category }),
+      signal: AbortSignal.timeout(3500)
     });
-    if (res.ok) {
-      return await res.json();
+
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
+      const data = await res.json();
+      if (data && data.answer) {
+        return data;
+      }
     }
-    const errData = await res.json().catch(() => ({}));
-    throw new Error(errData.detail || 'Failed to process question');
   } catch (err) {
-    console.error('API ask error:', err);
-    throw err;
+    console.info('Server API unreachable or offline, using verified local repository fallback.');
   }
+
+  // 2. Seamless local verified knowledge fallback
+  return matchLocalQuery(query, language, category);
 }
 
 export async function synthesizeServerAudio(text, language = 'hi', rate = 1.0) {
@@ -79,15 +95,17 @@ export async function synthesizeServerAudio(text, language = 'hi', rate = 1.0) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...TUNNEL_HEADERS
+        ...HEADERS
       },
-      body: JSON.stringify({ text, language, rate })
+      body: JSON.stringify({ text, language, rate }),
+      signal: AbortSignal.timeout(4000)
     });
-    if (res.ok) {
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
       return await res.json();
     }
   } catch (err) {
-    console.warn('Server TTS unavailable', err);
+    // Client-side Web Speech API will handle playback
   }
   return null;
 }
@@ -98,13 +116,15 @@ export async function testVoiceAPI(languageCode = 'hi') {
   try {
     const res = await fetch(`${API_BASE_URL}/speech/test-voice/${languageCode}`, {
       method: 'GET',
-      headers: TUNNEL_HEADERS
+      headers: HEADERS,
+      signal: AbortSignal.timeout(3000)
     });
-    if (res.ok) {
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
       return await res.json();
     }
   } catch (err) {
-    console.warn('Test voice API error:', err);
+    // Ignore
   }
   return null;
 }
@@ -115,13 +135,15 @@ export async function fetchRecordingsAPI(languageCode = null, answerId = null) {
     if (languageCode) params.set('language', languageCode);
     if (answerId) params.set('answer_id', answerId);
     const res = await fetch(`${API_BASE_URL}/recordings?${params.toString()}`, {
-      headers: TUNNEL_HEADERS
+      headers: HEADERS,
+      signal: AbortSignal.timeout(3000)
     });
-    if (res.ok) {
+    const ct = res.headers.get('content-type') || '';
+    if (res.ok && ct.includes('application/json')) {
       return await res.json();
     }
   } catch (err) {
-    console.warn('Fetch recordings API error:', err);
+    // Ignore
   }
-  return [];
+  return null;
 }

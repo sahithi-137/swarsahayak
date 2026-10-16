@@ -27,13 +27,21 @@ class AudioPlayerService {
     this.listeners = new Set();
 
     // Load persisted playback speed, default to 1.0x
-    const savedSpeed = parseFloat(localStorage.getItem(SPEED_STORAGE_KEY));
+    let savedSpeed = null;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        savedSpeed = parseFloat(localStorage.getItem(SPEED_STORAGE_KEY));
+      } catch (_) {}
+    }
     this.speed = VALID_SPEEDS.includes(savedSpeed) ? savedSpeed : 1.0;
 
     // Pre-cache browser voices
     this.voices = [];
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
       this._updateVoices();
+      try {
+        window.speechSynthesis.addEventListener('voiceschanged', () => this._updateVoices());
+      } catch (_) {}
       if (window.speechSynthesis.onvoiceschanged !== undefined) {
         window.speechSynthesis.onvoiceschanged = () => this._updateVoices();
       }
@@ -42,7 +50,10 @@ class AudioPlayerService {
 
   _updateVoices() {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-      this.voices = window.speechSynthesis.getVoices() || [];
+      const v = window.speechSynthesis.getVoices();
+      if (v && v.length > 0) {
+        this.voices = v;
+      }
     }
   }
 
@@ -128,19 +139,27 @@ class AudioPlayerService {
     this._updateVoices();
     if (!this.voices || this.voices.length === 0) return null;
 
-    const loc = (locale || '').toLowerCase();
-    const code = (langCode || '').toLowerCase();
+    const loc = (locale || '').toLowerCase().replace('_', '-');
+    const code = (langCode || '').toLowerCase().trim();
 
-    // Exact locale match
-    let match = this.voices.find(v => (v.lang || '').toLowerCase() === loc);
+    // 1. Exact locale match (e.g. 'hi-in' or 'en-in')
+    let match = this.voices.find(v => (v.lang || '').toLowerCase().replace('_', '-') === loc);
     if (match) return match;
 
-    // Language prefix match
+    // 2. Language prefix match (e.g. 'hi-' or 'en-')
     match = this.voices.find(v => {
-      const vLang = (v.lang || '').toLowerCase();
+      const vLang = (v.lang || '').toLowerCase().replace('_', '-');
       return vLang.startsWith(`${code}-`) || vLang === code;
     });
-    return match || null;
+    if (match) return match;
+
+    // 3. For English fallback
+    if (code === 'en') {
+      match = this.voices.find(v => (v.lang || '').toLowerCase().startsWith('en'));
+      if (match) return match;
+    }
+
+    return null;
   }
 
   /**
@@ -258,10 +277,13 @@ class AudioPlayerService {
       return { success: false, error: 'Web Speech API is not supported in this browser.' };
     }
 
-    const voice = this.findBrowserVoice(locale, langCode);
+    const code = (langCode || 'hi').toLowerCase().trim();
+    const BROWSER_SUPPORTED_CODES = ['hi', 'en', 'bn', 'ta', 'te', 'mr', 'gu', 'kn', 'ml', 'pa', 'ur'];
 
-    // Phonetic protection: don't let English pronounce Indian languages if no native voice exists
-    if (!voice && langCode !== 'en') {
+    const voice = this.findBrowserVoice(locale, code);
+
+    // Phonetic protection: don't let English or Hindi pronounce tribal languages without native voice
+    if (!voice && !BROWSER_SUPPORTED_CODES.includes(code)) {
       this.state = 'stopped';
       this._notify();
       return {
@@ -284,7 +306,7 @@ class AudioPlayerService {
         utterance.voice = voice;
         utterance.lang = voice.lang;
       } else {
-        utterance.lang = locale || 'en-IN';
+        utterance.lang = locale || (code === 'en' ? 'en-IN' : `${code}-IN`);
       }
 
       utterance.rate = this.speed;

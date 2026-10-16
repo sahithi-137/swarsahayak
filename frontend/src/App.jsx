@@ -10,6 +10,7 @@ import PrivacyNoticeModal from './components/PrivacyNoticeModal';
 import { LANGUAGES, DEFAULT_LANGUAGE, getLanguageByCode } from './config/languages';
 import { getUIText } from './config/ui_translations';
 import { askAssistant, checkBackendHealth } from './services/api';
+import { matchLocalQuery } from './services/localAssistant';
 import './App.css';
 
 export default function App() {
@@ -73,26 +74,8 @@ export default function App() {
       setAnswerData(result);
     } catch (err) {
       console.warn('API error, using local fallback:', err);
-      // Fallback display if backend is offline
-      setAnswerData({
-        query: queryText,
-        answer: `${ui('welcome')} \n\n• Note: SwarSahayak backend is currently connecting. You can continue browsing verified information and using client voice features.`,
-        answer_language: lang,
-        requested_language: lang,
-        category: selectedCategory || 'general',
-        matched_topic: 'SwarSahayak Assistant',
-        sources: [
-          {
-            title: 'National Portal of India',
-            verified_source: 'Government of India',
-            verified_url: 'https://india.gov.in',
-            verification_date: '2026-10-15'
-          }
-        ],
-        disclaimer: ui('emergencyDisclaimer'),
-        audio_available: false,
-        audio_provider: 'manual_reading_mode'
-      });
+      const fallbackResult = matchLocalQuery(queryText.trim(), lang, selectedCategory);
+      setAnswerData(fallbackResult);
     } finally {
       setIsProcessing(false);
     }

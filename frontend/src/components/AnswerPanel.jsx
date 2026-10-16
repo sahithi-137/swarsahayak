@@ -39,9 +39,9 @@ export default function AnswerPanel({
     };
   }, [answerData]);
 
-  const handlePlay = () => {
+  const handlePlay = async () => {
     setSpeechStatusMessage(null);
-    const result = audioPlayer.play({
+    const result = await audioPlayer.play({
       text: answerData.answer,
       audioBase64: answerData.audio_base64,
       locale: currentLanguage.locale,
