@@ -62,7 +62,7 @@ export async function fetchCategories() {
 }
 
 export async function askAssistant(query, language = 'hi', category = null) {
-  // 1. Attempt to query remote backend if accessible
+  // 1. Attempt to query backend if accessible
   try {
     const res = await fetch(`${API_BASE_URL}/ask`, {
       method: 'POST',
@@ -71,7 +71,7 @@ export async function askAssistant(query, language = 'hi', category = null) {
         ...HEADERS
       },
       body: JSON.stringify({ query, language, category }),
-      signal: AbortSignal.timeout(3500)
+      signal: AbortSignal.timeout(1800)
     });
 
     const ct = res.headers.get('content-type') || '';
@@ -82,10 +82,10 @@ export async function askAssistant(query, language = 'hi', category = null) {
       }
     }
   } catch (err) {
-    console.info('Server API unreachable or offline, using verified local repository fallback.');
+    // Immediate fallback without throwing to UI
   }
 
-  // 2. Seamless local verified knowledge fallback
+  // 2. Seamless verified local knowledge fallback
   return matchLocalQuery(query, language, category);
 }
 

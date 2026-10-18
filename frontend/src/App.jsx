@@ -63,22 +63,50 @@ export default function App() {
     });
   };
 
-  const handleQuerySubmit = async (queryText, targetLangCode = null) => {
+  const handleQuerySubmit = async (queryText, targetLangCode = null, categoryOverride = null) => {
     if (!queryText || !queryText.trim()) return;
 
     setIsProcessing(true);
     const lang = targetLangCode || currentLanguage.code;
+    const cat = categoryOverride !== null && categoryOverride !== undefined ? categoryOverride : selectedCategory;
 
     try {
-      const result = await askAssistant(queryText.trim(), lang, selectedCategory);
+      const result = await askAssistant(queryText.trim(), lang, cat);
       setAnswerData(result);
     } catch (err) {
       console.warn('API error, using local fallback:', err);
-      const fallbackResult = matchLocalQuery(queryText.trim(), lang, selectedCategory);
+      const fallbackResult = matchLocalQuery(queryText.trim(), lang, cat);
       setAnswerData(fallbackResult);
     } finally {
       setIsProcessing(false);
     }
+  };
+
+  const scrollToAnswer = () => {
+    setTimeout(() => {
+      const anchor = document.getElementById('answer-display-anchor') || document.querySelector('.answer-section-anchor');
+      if (anchor) {
+        anchor.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 60);
+  };
+
+  const handleTriggerServiceCard = (categoryId, query) => {
+    setSelectedCategory(categoryId);
+    setExternalPrompt(query);
+    handleQuerySubmit(query, currentLanguage.code, categoryId);
+    scrollToAnswer();
+  };
+
+  const handleSelectQuickPrompt = (text) => {
+    setExternalPrompt(text);
+    handleQuerySubmit(text, currentLanguage.code, selectedCategory);
+    scrollToAnswer();
+  };
+
+  const handleVoiceMicSubmit = (query) => {
+    handleQuerySubmit(query, currentLanguage.code, selectedCategory);
+    scrollToAnswer();
   };
 
   return (
@@ -139,7 +167,7 @@ export default function App() {
         <VoiceMicZone
           currentLanguage={currentLanguage}
           simplifiedMode={simplifiedMode}
-          onSubmitQuery={(q) => handleQuerySubmit(q)}
+          onSubmitQuery={handleVoiceMicSubmit}
           isProcessing={isProcessing}
           externalQuery={externalPrompt}
           onClearExternalQuery={() => setExternalPrompt('')}
@@ -148,28 +176,28 @@ export default function App() {
         {/* Quick Suggested Queries */}
         <QuickPrompts
           currentLanguage={currentLanguage}
-          onSelectPrompt={(text) => handleQuerySubmit(text)}
+          onSelectPrompt={handleSelectQuickPrompt}
           simplifiedMode={simplifiedMode}
         />
 
         {/* Answer Display Panel (if answer exists) */}
-        {answerData && (
-          <section className="answer-section-anchor">
+        <div id="answer-display-anchor" className="answer-section-anchor">
+          {answerData && (
             <AnswerPanel
               answerData={answerData}
               currentLanguage={currentLanguage}
               simplifiedMode={simplifiedMode}
-              onAskAgain={() => handleQuerySubmit(answerData.query)}
+              onAskAgain={() => handleQuerySubmit(answerData.query, currentLanguage.code, selectedCategory)}
             />
-          </section>
-        )}
+          )}
+        </div>
 
         {/* 4 Core Essential Service Cards */}
         <ServiceCards
           currentLanguage={currentLanguage}
           selectedCategory={selectedCategory}
           onSelectCategory={(cat) => setSelectedCategory(cat)}
-          onTriggerQuickPrompt={(query) => handleQuerySubmit(query)}
+          onTriggerQuickPrompt={handleTriggerServiceCard}
           simplifiedMode={simplifiedMode}
         />
       </main>

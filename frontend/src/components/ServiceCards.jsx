@@ -128,10 +128,14 @@ export default function ServiceCards({
               id={`service-card-${item.id}`}
               className={`service-card ${isSelected ? 'active-card' : ''}`}
               onClick={() => {
-                if (isSelected) {
-                  onSelectCategory(null);
-                } else {
+                onSelectCategory(item.id);
+                onTriggerQuickPrompt(item.id, query);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
                   onSelectCategory(item.id);
+                  onTriggerQuickPrompt(item.id, query);
                 }
               }}
               role="button"
@@ -155,7 +159,8 @@ export default function ServiceCards({
                   className="ask-sample-button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    onTriggerQuickPrompt(query);
+                    onSelectCategory(item.id);
+                    onTriggerQuickPrompt(item.id, query);
                   }}
                   title="Ask this question now"
                 >

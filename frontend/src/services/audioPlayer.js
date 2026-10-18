@@ -294,12 +294,16 @@ class AudioPlayerService {
 
     try {
       window.speechSynthesis.cancel();
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
 
       // Clean markdown bullets and symbols for speech clarity
       const cleanText = text
-        .replace(/[•*#_`]/g, ' ')
+        .replace(/[•*#_`~]/g, ' ')
         .replace(/\n+/g, '. ')
-        .substring(0, 600);
+        .replace(/\s+/g, ' ')
+        .substring(0, 1000);
 
       const utterance = new SpeechSynthesisUtterance(cleanText);
       if (voice) {
@@ -330,6 +334,9 @@ class AudioPlayerService {
       utterance.onend = () => {
         this.state = 'stopped';
         this.currentUtterance = null;
+        if (typeof window !== 'undefined') {
+          window._swarsahayak_active_utterance = null;
+        }
         this._notify();
       };
 
@@ -339,10 +346,16 @@ class AudioPlayerService {
         }
         this.state = 'stopped';
         this.currentUtterance = null;
+        if (typeof window !== 'undefined') {
+          window._swarsahayak_active_utterance = null;
+        }
         this._notify();
       };
 
       this.currentUtterance = utterance;
+      if (typeof window !== 'undefined') {
+        window._swarsahayak_active_utterance = utterance;
+      }
       this.mode = 'browser_voice';
       this.currentTrack = {
         text,
@@ -352,6 +365,10 @@ class AudioPlayerService {
         metadata
       };
 
+      // Unpause if Chrome is in paused state
+      if (window.speechSynthesis.paused) {
+        window.speechSynthesis.resume();
+      }
       window.speechSynthesis.speak(utterance);
       return { success: true, mode: 'browser_voice' };
     } catch (err) {
